@@ -23,10 +23,14 @@ in_geese = with(geese_data, cosimmrSTAN_load(formula,
 
 plot(in_geese, colour_by_cov = TRUE, cov_name = "Time")
 out_geese = cosimmr_stan(in_geese)
-plot(out_geese, type = "prop_density", obs = c(1, 250))
-plot(out_geese, type = "beta_fixed_histogram")
+plot(out_geese, type = "prop_density", obs = c(1)) + xlim(0,1) + ylim(0,)
+plot(out_geese, type = "prop_density", obs = c(250))
+plot(out_geese, type = "beta_fixed_density") +ggtitle("beta density plot for Time Period 8 covariate")
 
 plot(out_geese, type = "covariates_plot", one_plot = FALSE, cov_name = "Time")
+
+
+
 
 ##Fixed Effects MixSIAR-------------
 # Load mix data
@@ -112,9 +116,38 @@ plot(in_wolves, colour_by_cov = TRUE, cov_name = "pack")
 
 out_wolves = cosimmr_stan(in_wolves)
 summary(out_wolves, type = "statistics")
-plot(out_wolves, type = c("prop_density", "beta_random_histogram", "covariates_plot"), 
+plot(out_wolves, type = c("prop_density", "beta_random_density", "covariates_plot"), 
         one_plot = FALSE, 
         cov_name = "pack")
+
+plot(out_wolves, type = "prop_density") + xlim(0,1)
+plot(out_wolves, type = "omega_density")
+##Ternary plot
+#install.packages("ggtern")
+library(ggtern)
+p = out_wolves$output$p
+# Assuming p is an array of dimensions n_samples * n_obs * 3 (for 3 sources)
+n_samples <- dim(p)[1]
+n_obs <- dim(p)[2]
+n_sources <- dim(p)[3]
+
+# Calculate the mean proportions for each observation
+mean_data <- apply(p, c(2, 3), mean)  # This computes the mean across samples (dimension 1)
+
+# Convert the mean data into a data frame for ggtern
+df_means <- as.data.frame(mean_data)
+df_means = cbind(df_means, out_wolves$input$covariates_df)
+colnames(df_means) <- c("Deer", "Salmon", "MMammals", "Pack")
+
+# Create the ternary plot for the mean proportions of each observation
+
+ggtern(data = df_means, aes(x = Deer, y = Salmon, z = MMammals, colour = Pack)) +
+  geom_point() +
+  theme_bw() +
+  labs(x = "Deer", y = "Salmon", z = "Marine Mammals") +
+  ggtitle("Mean Proportions for Each Observation")
+
+
 
 ## Random Effects MixSIAR-----------------
 
@@ -210,7 +243,7 @@ plot(out_alli,
 
 
 plot(out_alli, 
-     type = c("prop_density")) +ylim(0,8)
+     type = c("prop_density")) +ylim(0,8) +xlim(0,1)
 
 plot(out_alli, type = "covariates_plot", cov_name = "Length")
 plot(out_alli, type = "covariates_plot", one_plot = FALSE, cov_name = "Sclass")
