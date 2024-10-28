@@ -21,14 +21,17 @@ in_geese = with(geese_data, cosimmrSTAN_load(formula,
                                              concentration_means = concentration_means,
                                              scale_x = FALSE))
 
-plot(in_geese, colour_by_cov = TRUE, cov_name = "Time")
+plot(in_geese, cov_name = "Time")
 out_geese = cosimmr_stan(in_geese)
-plot(out_geese, type = "prop_density", obs = c(1)) + xlim(0,1) + ylim(0,)
-plot(out_geese, type = "prop_density", obs = c(250))
-plot(out_geese, type = "beta_fixed_density") +ggtitle("beta density plot for Time Period 8 covariate")
+
+convergence_check(out_geese)
+
+
+plot(out_geese, type = "prop_density", obs = c(1)) +xlim(0,1) +ylim(0,20) #To make it match MixSIAR
+plot(out_geese, type = "prop_density", obs = c(250)) +xlim(0,1)
+plot(out_geese, type = "beta_fixed_density") +ggtitle("beta density plot for Time Period 8 covariate") 
 
 plot(out_geese, type = "covariates_plot", one_plot = FALSE, cov_name = "Time")
-
 
 
 
@@ -91,7 +94,7 @@ g <- ggplot(df, aes(
   ggtitle("Proportions: Observation 1") +
   ylab("Density") +
   facet_wrap("~ Source") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +xlim(0,1) +ylim(0,20)
 print(g) 
 
 
@@ -101,8 +104,8 @@ print(g)
 
 ##Random Effects cosimmrSTAN--------------------
 wolves_data = cosimmrSTAN::wolves_data
-pack = as.factor(wolves_data$pack)
-formula = wolves_data$y ~ (1|pack)
+Pack = as.factor(wolves_data$pack)
+formula = wolves_data$y ~ (1|Pack)
 
 in_wolves<-with(wolves_data, cosimmrSTAN_load(formula,
                             source_names = source_names,
@@ -112,16 +115,24 @@ in_wolves<-with(wolves_data, cosimmrSTAN_load(formula,
                             correction_sds = c_sd,
                             scale_x = FALSE))
 
-plot(in_wolves, colour_by_cov = TRUE, cov_name = "pack")
+plot(in_wolves, cov_name = "Pack") +xlab("d13C") + ylab("d15N")
 
 out_wolves = cosimmr_stan(in_wolves)
+
+convergence_check(out_wolves)
+
 summary(out_wolves, type = "statistics")
 plot(out_wolves, type = c("prop_density", "beta_random_density", "covariates_plot"), 
         one_plot = FALSE, 
-        cov_name = "pack")
+        cov_name = "Pack")
+
 
 plot(out_wolves, type = "prop_density") + xlim(0,1)
+plot(out_wolves, type = "beta_random_density") + ggtitle("beta density plot for Pack covariate, level 1") + theme_bw()
 plot(out_wolves, type = "omega_density")
+
+
+
 ##Ternary plot
 #install.packages("ggtern")
 library(ggtern)
@@ -145,7 +156,7 @@ ggtern(data = df_means, aes(x = Deer, y = Salmon, z = MMammals, colour = Pack)) 
   geom_point() +
   theme_bw() +
   labs(x = "Deer", y = "Salmon", z = "Marine Mammals") +
-  ggtitle("Mean Proportions for Each Observation")
+  ggtitle("Mean Proportions for Each Observation") + scale_fill_viridis()
 
 
 
@@ -213,7 +224,7 @@ g <- ggplot(df, aes(
   theme_bw() +
   ggtitle("Proportions: Observation 1") +
   facet_wrap("~ Source") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +xlim(0,1) + ylim(0,20)
 print(g) 
 
 ##Mixed Effects Alligator example --------------
@@ -232,14 +243,16 @@ in_alli<-with(alligator_data, cosimmrSTAN_load(formula,
                           correction_means = TEF_means,
                           correction_sds = TEF_sds))
 
-plot(in_alli, colour_by_cov = TRUE, cov_name = "Length")
+plot(in_alli, cov_name = "Length")
 
 out_alli = cosimmr_stan(in_alli)
 
+convergence_check(out_alli)
+
 plot(out_alli, 
      type = c("prop_density", 
-              "beta_fixed_histogram", 
-              "beta_random_histogram"))
+              "beta_fixed_density", 
+              "beta_random_density"))
 
 
 plot(out_alli, 
@@ -247,6 +260,8 @@ plot(out_alli,
 
 plot(out_alli, type = "covariates_plot", cov_name = "Length")
 plot(out_alli, type = "covariates_plot", one_plot = FALSE, cov_name = "Sclass")
+plot(out_alli, type = "omega_density")
+
 
 x_df_alli = data.frame(Length = c(50, 200), 
                        Sclass = as.factor(c("Adult", "Small juvenile")))
@@ -319,7 +334,7 @@ g <- ggplot(df, aes(
   theme_bw() +
   ggtitle("Proportions: Observation 1") +
   facet_wrap("~ Source") +
-  theme(legend.position = "none") +xlim(0,1)
+  theme(legend.position = "none") +xlim(0,1) +ylim(0,8)
 print(g) 
 
 

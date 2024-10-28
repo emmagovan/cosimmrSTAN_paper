@@ -1,6 +1,8 @@
 #Alligator cosimmrSTAN vs MixSIAR timing-------------
 #cosimmrSTAN----------------
 library(cosimmrSTAN)
+library(MixSIAR)
+library(microbenchmark)
 alligator_data = cosimmrSTAN::alligator_data
 
 Length = alligator_data$length
@@ -46,11 +48,13 @@ model_filename <- paste0("MixSIAR_model_", 5, ".txt")
 resid_err <- TRUE
 process_err <- TRUE
 write_JAGS_model(model_filename, resid_err, process_err, mix, source)
-MixSIAR = run_model(run="short", mix, source, discr, model_filename, alpha.prior=1)
+#MixSIAR = run_model(run="short", mix, source, discr, model_filename, alpha.prior=1)
 
 
   microbenchmark(cosimmrSTAN_VB =  cosimmr_stan(in_alli),
-                 cosimmrSTAN_MCMC = cosimmr_stan(in_alli, type = "STAN_MCMC"),
+                 cosimmrSTAN_MCMC = cosimmr_stan(in_alli, type = "STAN_MCMC", mcmc_control = list(iterations = 10000,
+                                                                                                  chains = 4,
+                                                                                                  cores = 4)),
                  MixSIAR = run_model(run="short", mix, source, discr, model_filename, alpha.prior=1), times = 10L)
 
 
@@ -95,8 +99,10 @@ MixSIAR = run_model(run="short", mix, source, discr, model_filename, alpha.prior
   process_err <- TRUE
   write_JAGS_model(model_filename, resid_err, process_err, mix, source)
   
-  microbenchmark(cosimmrSTAN_VB =  cosimmr_stan(in_wolves),
-                 cosimmrSTAN_MCMC = cosimmr_stan(in_wolves, type = "STAN_MCMC"),
+  microbenchmark(cosimmrSTAN_VB_wolves =  cosimmr_stan(in_wolves),
+                 cosimmrSTAN_MCMC = cosimmr_stan(in_wolves, type = "STAN_MCMC", mcmc_control = list(iterations = 10000,
+                                                                                                    chains = 4,
+                                                                                                    cores = 4)),
                  MixSIAR = run_model(run="normal", mix, source, discr, model_filename, alpha.prior = 1), 
                  times = 10L)
   
@@ -156,12 +162,43 @@ MixSIAR = run_model(run="short", mix, source, discr, model_filename, alpha.prior
  # jags.1 <- run_model(run="short", mix, source, discr, model_filename, alpha.prior=1)
   
   microbenchmark(cosimmrSTAN_VB = cosimmr_stan(in_geese),
-                 cosimmrSTAN_MCMC = cosimmr_stan(in_geese, type = "STAN_MCMC"),
-                 MixSIAR = run_model(run="short", mix, source, discr, model_filename, alpha.prior=1))
+                 cosimmrSTAN_MCMC = cosimmr_stan(in_geese, type = "STAN_MCMC", mcmc_control = list(iterations = 10000,
+                                                                                                   chains = 4,
+                                                                                                   cores = 4)),
+                 MixSIAR = run_model(run="short", mix, source, discr, model_filename, alpha.prior=1),
+                 times = 10L)
   
   
   
+##Timing fitted and raw data
+  ###----------Fitted
+  geese_data = cosimmrSTAN::geese_data
+  Time = as.factor(geese_data$groups)
+  formula = geese_data$mixtures ~ Time
   
+  microbenchmark(in_geese = with(geese_data, cosimmrSTAN_load(formula,
+                                               source_names = source_names,
+                                               source_means = source_means,
+                                               source_sds = source_sds,
+                                               correction_means = correction_means,
+                                               correction_sds = correction_sds,
+                                               concentration_means = concentration_means,
+                                               scale_x = FALSE,
+                                               n_each_source = c(10,5,7,20),
+                                               hierarchical_fitting = TRUE)),
+                 times = 10L)
+  
+  #Raw
+  cons = read.csv("palmyra_consumer.csv")
+  disc = read.csv("palmyra_discrimination.csv")
+  sources = read.csv("palmyra_sources.csv")
+  y = as.matrix(cons[,2:3])
+  colnames(sources) = c("Source", "d13C", "d15N" )
+  microbenchmark(p_load = cosimmrSTAN_load(formula = y~1,
+                            source_names = unique(sources$Source),
+                            source = sources,
+                            raw_source = TRUE),
+                 times = 10L)
   
   
   
